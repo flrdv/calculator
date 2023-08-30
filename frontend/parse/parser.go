@@ -2,7 +2,6 @@ package parse
 
 import (
 	"calculator/frontend/lex"
-	"calculator/frontend/operator"
 	"fmt"
 	"strconv"
 )
@@ -40,30 +39,75 @@ func (p *Parser) stmt() (Node, error) {
 			return nil, err
 		}
 
-		switch lexeme.Type {
-		case lex.EOF:
-		case lex.Operator:
-			switch op := operator.Operator(lexeme.Value); op {
-			case operator.Plus, operator.Minus:
-				right, err := p.stmt()
-
-				return BinOp{
-					Op:    op,
-					Left:  expr,
-					Right: right,
-				}, err
-			default:
-				return nil, fmt.Errorf("unexpected operator: (%s %s)", lexeme.Type, lexeme.Value)
-			}
-		default:
-			return nil, fmt.Errorf("unexpected stmt: (%s %s)", lexeme.Type, lexeme.Value)
+		if lexeme.Type == lex.EOF {
+			break
 		}
 
-		return expr, nil
+		switch lexeme.Type {
+		case lex.OpPlus, lex.OpMinus:
+			right, err := p.expr()
+			if err != nil {
+				return nil, err
+			}
+
+			expr = BinOp{
+				Op:    lexeme.Type,
+				Left:  expr,
+				Right: right,
+			}
+		default:
+			if lexeme.Type.IsOperator() {
+				return nil, fmt.Errorf("unexpected operator: %s", lexeme)
+			}
+
+			p.lexer.Back()
+
+			return expr, nil
+		}
 	}
+
+	return expr, nil
 }
 
 func (p *Parser) expr() (Node, error) {
+	factor, err := p.term()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		lexeme, err := p.lexer.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		if lexeme.Type == lex.EOF {
+			break
+		}
+
+		switch lexeme.Type {
+		case lex.OpStar, lex.OpSlash:
+			right, err := p.term()
+			if err != nil {
+				return nil, err
+			}
+
+			factor = BinOp{
+				Op:    lexeme.Type,
+				Left:  factor,
+				Right: right,
+			}
+		default:
+			p.lexer.Back()
+
+			return factor, nil
+		}
+	}
+
+	return factor, nil
+}
+
+func (p *Parser) term() (Node, error) {
 	factor, err := p.factor()
 	if err != nil {
 		return nil, err
@@ -75,29 +119,30 @@ func (p *Parser) expr() (Node, error) {
 			return nil, err
 		}
 
-		switch lexeme.Type {
-		case lex.EOF:
-		case lex.Operator:
-			switch op := operator.Operator(lexeme.Value); op {
-			case operator.Star, operator.Slash:
-				right, err := p.expr()
-
-				return BinOp{
-					Op:    op,
-					Left:  factor,
-					Right: right,
-				}, err
-			default:
-				p.lexer.Back()
-
-				return factor, nil
-			}
-		default:
-			return nil, fmt.Errorf("unexpected expr: (%s %s)", lexeme.Type, lexeme.Value)
+		if lexeme.Type == lex.EOF {
+			break
 		}
 
-		return factor, nil
+		switch lexeme.Type {
+		case lex.OpCaret:
+			right, err := p.term()
+			if err != nil {
+				return nil, err
+			}
+
+			factor = BinOp{
+				Op:    lex.OpCaret,
+				Left:  factor,
+				Right: right,
+			}
+		default:
+			p.lexer.Back()
+
+			return factor, nil
+		}
 	}
+
+	return factor, nil
 }
 
 func (p *Parser) factor() (Node, error) {
@@ -108,18 +153,25 @@ func (p *Parser) factor() (Node, error) {
 
 	switch lexeme.Type {
 	case lex.Number:
-		return strconv.Atoi(lexeme.Value)
+		value, err := strconv.ParseInt(lexeme.Value, 10, 64)
+		return Number(value), err
 	case lex.Id:
-		return lexeme.Value, nil
+		return ID(lexeme.Value), nil
+	case lex.UnPlus, lex.UnMinus:
+		value, err := p.term()
+		return UnOp{
+			Op:    lexeme.Type,
+			Value: value,
+		}, err
 	case lex.LParen:
 		stmt, err := p.stmt()
 		if err != nil {
 			return nil, err
 		}
 
-		return stmt, p.match(lex.LParen)
+		return stmt, p.match(lex.RParen)
 	default:
-		return nil, fmt.Errorf("unexpected factor: (%s %s)", lexeme.Type, lexeme.Value)
+		return nil, fmt.Errorf("unexpected factor: %s", lexeme)
 	}
 }
 
@@ -130,7 +182,7 @@ func (p *Parser) match(typ lex.LexemeType) error {
 	}
 
 	if lexeme.Type != typ {
-		return fmt.Errorf("wanted %s, got (%s %s)", typ, lexeme.Type, lexeme.Value)
+		return fmt.Errorf("wanted %s, got %s", typ, lexeme)
 	}
 
 	return nil

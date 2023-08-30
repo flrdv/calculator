@@ -33,6 +33,7 @@ func (p *Parser) stmt() (Node, error) {
 		return nil, err
 	}
 
+loop:
 	for {
 		lexeme, err := p.lexer.Next()
 		if err != nil {
@@ -44,6 +45,34 @@ func (p *Parser) stmt() (Node, error) {
 		}
 
 		switch lexeme.Type {
+		case lex.LParen:
+			var args []Node
+
+			for {
+				arg, err := p.stmt()
+				if err != nil {
+					return nil, err
+				}
+
+				lexeme, err := p.lexer.Next()
+				if err != nil {
+					return nil, err
+				}
+
+				args = append(args, arg)
+
+				switch lexeme.Type {
+				case lex.ChComma:
+				case lex.RParen:
+					expr = FCall{
+						Target: expr,
+						Args:   args,
+					}
+					continue loop
+				default:
+					return nil, fmt.Errorf("unexpected symbol: %s (expected ) or ,)", lexeme)
+				}
+			}
 		case lex.OpPlus, lex.OpMinus:
 			right, err := p.expr()
 			if err != nil {
@@ -56,7 +85,7 @@ func (p *Parser) stmt() (Node, error) {
 				Right: right,
 			}
 		default:
-			if lexeme.Type.IsOperator() {
+			if lexeme.Type.IsSymbol() {
 				return nil, fmt.Errorf("unexpected operator: %s", lexeme)
 			}
 

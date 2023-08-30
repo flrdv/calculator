@@ -40,7 +40,7 @@ func (l *Lexer) Next() (Lexeme, error) {
 	case Id:
 		value, err := l.parseId()
 		return l.save(Lexeme{Id, value}), err
-	case untypedOperator:
+	case symbol:
 		lexeme, err := l.parseOperator()
 		return l.save(lexeme), err
 	case LParen:
@@ -105,22 +105,22 @@ func (l *Lexer) parseId() (string, error) {
 func (l *Lexer) parseOperator() (Lexeme, error) {
 	for i := 1; i < len(l.input); i++ {
 		if !isUnaryPrefix(l.input[:i+1]) {
-			op := l.after(i)
-			opType := operatorType(op)
-			if opType == Untyped {
-				return Lexeme{}, fmt.Errorf("unknown operator: %s", op)
+			sym := l.after(i)
+			symType := symbolType(sym)
+			if symType == Untyped {
+				return Lexeme{}, fmt.Errorf("unknown operator: %s", sym)
 			}
 
-			if l.previous.Type.FollowingOpCanBeUnary() {
-				unType := opType.AsUnary()
+			if l.previous.Type.FollowingSymCanBeUnary() {
+				unType := symType.AsUnary()
 				if unType == Untyped {
-					return Lexeme{}, fmt.Errorf("unknown unary: %s", op)
+					return Lexeme{}, fmt.Errorf("unknown unary: %s", sym)
 				}
 
-				return Lexeme{unType, op}, nil
+				return Lexeme{unType, sym}, nil
 			}
 
-			return Lexeme{opType, op}, nil
+			return Lexeme{symType, sym}, nil
 		}
 	}
 
@@ -135,8 +135,8 @@ func (l *Lexer) guessLexemeType() LexemeType {
 		return Number
 	case isIdent(l.input[0]):
 		return Id
-	case isOperatorPrefix(l.input[:1]):
-		return untypedOperator
+	case isSymbolPrefix(l.input[:1]):
+		return symbol
 	case l.input[0] == '(':
 		return LParen
 	case l.input[0] == ')':

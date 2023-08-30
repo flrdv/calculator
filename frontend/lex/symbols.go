@@ -3,8 +3,8 @@ package lex
 import "strings"
 
 var (
-	allOps = []string{plus, minus, star, slash, caret}
-	unOps  = []string{plus, minus}
+	allSymbols   = []string{plus, minus, star, slash, caret, comma}
+	unarySymbols = []string{plus, minus}
 )
 
 const (
@@ -13,9 +13,10 @@ const (
 	star  = "*"
 	slash = "/"
 	caret = "^"
+	comma = ","
 )
 
-func operatorType(o string) LexemeType {
+func symbolType(o string) LexemeType {
 	switch o {
 	case plus:
 		return OpPlus
@@ -27,13 +28,15 @@ func operatorType(o string) LexemeType {
 		return OpSlash
 	case caret:
 		return OpCaret
+	case comma:
+		return ChComma
 	}
 
 	return Untyped
 }
 
-func isOperatorPrefix(opPrefix string) bool {
-	for _, op := range allOps {
+func isSymbolPrefix(opPrefix string) bool {
+	for _, op := range allSymbols {
 		if strings.HasPrefix(op, opPrefix) {
 			return true
 		}
@@ -43,7 +46,7 @@ func isOperatorPrefix(opPrefix string) bool {
 }
 
 func isUnaryPrefix(prefix string) bool {
-	for _, op := range unOps {
+	for _, op := range unarySymbols {
 		if strings.HasPrefix(op, prefix) {
 			return true
 		}

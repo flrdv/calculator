@@ -21,3 +21,10 @@ type UnOp struct {
 	Op    lex.LexemeType
 	Value Node
 }
+
+type Function func(...Node) float64
+
+type FCall struct {
+	Target Node
+	Args   []Node
+}

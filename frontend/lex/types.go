@@ -5,34 +5,35 @@ import "fmt"
 type LexemeType string
 
 const (
-	EOF             LexemeType = "EOF"
-	Untyped         LexemeType = ""
-	Number          LexemeType = "NUMBER"
-	untypedOperator LexemeType = "OPERATOR"
-	OpPlus          LexemeType = "OP_PLUS"
-	OpMinus         LexemeType = "OP_MINUS"
-	OpStar          LexemeType = "OP_STAR"
-	OpSlash         LexemeType = "OP_SLASH"
-	OpCaret         LexemeType = "OP_CARET"
-	UnPlus          LexemeType = "UN_PLUS"
-	UnMinus         LexemeType = "UN_MINUS"
-	Id              LexemeType = "ID"
-	Keyword         LexemeType = "KEYWORD"
-	LParen          LexemeType = "LPAREN"
-	RParen          LexemeType = "RPAREN"
+	EOF     LexemeType = "EOF"
+	Untyped LexemeType = ""
+	Number  LexemeType = "NUMBER"
+	symbol  LexemeType = "SYMBOL"
+	OpPlus  LexemeType = "OP_PLUS"
+	OpMinus LexemeType = "OP_MINUS"
+	OpStar  LexemeType = "OP_STAR"
+	OpSlash LexemeType = "OP_SLASH"
+	OpCaret LexemeType = "OP_CARET"
+	UnPlus  LexemeType = "UN_PLUS"
+	UnMinus LexemeType = "UN_MINUS"
+	ChComma LexemeType = "CH_COMMA"
+	Id      LexemeType = "ID"
+	Keyword LexemeType = "KEYWORD"
+	LParen  LexemeType = "LPAREN"
+	RParen  LexemeType = "RPAREN"
 )
 
-func (l LexemeType) IsOperator() bool {
+func (l LexemeType) IsSymbol() bool {
 	switch l {
-	case untypedOperator, OpPlus, OpMinus, OpStar, OpSlash, OpCaret, UnPlus, UnMinus:
+	case symbol, OpPlus, OpMinus, OpStar, OpSlash, OpCaret, UnPlus, UnMinus:
 		return true
 	}
 
 	return false
 }
 
-func (l LexemeType) FollowingOpCanBeUnary() bool {
-	return l.IsOperator() || l == Untyped || l == LParen
+func (l LexemeType) FollowingSymCanBeUnary() bool {
+	return l.IsSymbol() || l == Untyped || l == LParen
 }
 
 func (l LexemeType) AsUnary() LexemeType {

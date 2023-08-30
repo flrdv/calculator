@@ -46,6 +46,10 @@ func TestLexer(t *testing.T) {
 			Lexeme{Number, "7"},
 		)
 	})
+
+	t.Run("comma", func(t *testing.T) {
+		testLexer(t, "a,b", Lexeme{Id, "a"}, Lexeme{ChComma, ","}, Lexeme{Id, "b"})
+	})
 }
 
 func testLexer(t *testing.T, code string, want ...Lexeme) {

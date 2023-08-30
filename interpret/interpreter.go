@@ -2,18 +2,19 @@ package interpret
 
 import (
 	"calculator/frontend/lex"
-	"calculator/frontend/parse"
+	"calculator/frontend/parse/ast"
 	"fmt"
 	"math"
+	"reflect"
 )
 
 type Interpreter struct {
-	names map[string]float64
+	names map[string]ast.Node
 }
 
-func NewInterpreter(names map[string]float64) Interpreter {
+func NewInterpreter(names map[string]ast.Node) Interpreter {
 	if names == nil {
-		names = make(map[string]float64)
+		names = make(map[string]ast.Node)
 	}
 
 	return Interpreter{
@@ -21,22 +22,27 @@ func NewInterpreter(names map[string]float64) Interpreter {
 	}
 }
 
-func (i Interpreter) Execute(node parse.Node) (float64, error) {
+func (i Interpreter) Evaluate(node ast.Node) (ast.Node, error) {
 	switch node.(type) {
-	case parse.Number:
-		return float64(node.(parse.Number)), nil
-	case parse.ID:
-		value, found := i.names[string(node.(parse.ID))]
+	case ast.Integer, ast.Float:
+		return node, nil
+	case ast.ID:
+		value, found := i.names[node.(ast.ID)]
 		if !found {
-			return 0, fmt.Errorf("name not found: %s", node.(parse.ID))
+			return nil, fmt.Errorf("name not found: %v", node)
 		}
 
 		return value, nil
-	case parse.UnOp:
-		unOp := node.(parse.UnOp)
-		value, err := i.Execute(unOp.Value)
+	case ast.UnOp:
+		unOp := node.(ast.UnOp)
+		rawValue, err := i.Evaluate(unOp.Value)
 		if err != nil {
-			return 0, err
+			return nil, err
+		}
+
+		value, ok := rawValue.(ast.Integer)
+		if !ok {
+			return nil, fmt.Errorf("cannot use %v as integer", rawValue)
 		}
 
 		switch unOp.Op {
@@ -46,17 +52,25 @@ func (i Interpreter) Execute(node parse.Node) (float64, error) {
 			return -value, nil
 		}
 
-		return 0, fmt.Errorf("interpreter: unknown unary: %s", unOp.Op)
-	case parse.BinOp:
-		binOp := node.(parse.BinOp)
-		left, err := i.Execute(binOp.Left)
+		return nil, fmt.Errorf("interpreter: unknown unary: %s", unOp.Op)
+	case ast.BinOp:
+		binOp := node.(ast.BinOp)
+		rawLeft, err := i.Evaluate(binOp.Left)
 		if err != nil {
-			return 0, err
+			return nil, err
+		}
+		left, ok := rawLeft.(ast.Integer)
+		if !ok {
+			return nil, fmt.Errorf("cannot use %v as integer", rawLeft)
 		}
 
-		right, err := i.Execute(binOp.Right)
+		rawRight, err := i.Evaluate(binOp.Right)
 		if err != nil {
-			return 0, err
+			return nil, err
+		}
+		right, ok := rawRight.(ast.Integer)
+		if !ok {
+			return nil, fmt.Errorf("cannot use %v as integer", rawRight)
 		}
 
 		switch binOp.Op {
@@ -69,11 +83,39 @@ func (i Interpreter) Execute(node parse.Node) (float64, error) {
 		case lex.OpSlash:
 			return left / right, nil
 		case lex.OpCaret:
-			return math.Pow(left, right), nil
+			return ast.Integer(math.Pow(float64(left), float64(right))), nil
 		}
 
-		return 0, fmt.Errorf("interpreter: unknown operator: %s", binOp.Op)
+		return nil, fmt.Errorf("interpreter: unknown operator: %s", binOp.Op)
+	case ast.FCall:
+		fcall := node.(ast.FCall)
+		target, err := i.Evaluate(fcall.Target)
+		if err != nil {
+			return nil, err
+		}
+
+		fun, ok := target.(ast.Function)
+		if !ok {
+			return nil, fmt.Errorf("cannot call %s", reflect.TypeOf(target))
+		}
+
+		var args []ast.Node
+		for _, arg := range fcall.Args {
+			evaluated, err := i.Evaluate(arg)
+			if err != nil {
+				return nil, err
+			}
+
+			args = append(args, evaluated)
+		}
+
+		res, err := fun(args...)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
 	}
 
-	return 0, fmt.Errorf("interpreter: unknown node: %s", node)
+	return nil, fmt.Errorf("interpreter: unknown node: %s", node)
 }

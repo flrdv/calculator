@@ -1,6 +1,8 @@
 package parse
 
-import "calculator/frontend/operator"
+import (
+	"calculator/frontend/lex"
+)
 
 type Program []Node
 
@@ -11,6 +13,11 @@ type Number int64
 type ID string
 
 type BinOp struct {
-	Op          operator.Operator
+	Op          lex.LexemeType
 	Left, Right Node
+}
+
+type UnOp struct {
+	Op    lex.LexemeType
+	Value Node
 }

@@ -2,6 +2,7 @@ package parse
 
 import (
 	"calculator/frontend/lex"
+	"calculator/frontend/parse/ast"
 	"fmt"
 	"strconv"
 )
@@ -14,7 +15,7 @@ func NewParser(lexer *lex.Lexer) *Parser {
 	return &Parser{lexer: lexer}
 }
 
-func (p *Parser) Parse() (program Program, err error) {
+func (p *Parser) Parse() (program ast.Program, err error) {
 	for !p.lexer.EOF() {
 		node, err := p.stmt()
 		if err != nil {
@@ -27,13 +28,12 @@ func (p *Parser) Parse() (program Program, err error) {
 	return program, nil
 }
 
-func (p *Parser) stmt() (Node, error) {
+func (p *Parser) stmt() (ast.Node, error) {
 	expr, err := p.expr()
 	if err != nil {
 		return nil, err
 	}
 
-loop:
 	for {
 		lexeme, err := p.lexer.Next()
 		if err != nil {
@@ -45,41 +45,13 @@ loop:
 		}
 
 		switch lexeme.Type {
-		case lex.LParen:
-			var args []Node
-
-			for {
-				arg, err := p.stmt()
-				if err != nil {
-					return nil, err
-				}
-
-				lexeme, err := p.lexer.Next()
-				if err != nil {
-					return nil, err
-				}
-
-				args = append(args, arg)
-
-				switch lexeme.Type {
-				case lex.ChComma:
-				case lex.RParen:
-					expr = FCall{
-						Target: expr,
-						Args:   args,
-					}
-					continue loop
-				default:
-					return nil, fmt.Errorf("unexpected symbol: %s (expected ) or ,)", lexeme)
-				}
-			}
 		case lex.OpPlus, lex.OpMinus:
 			right, err := p.expr()
 			if err != nil {
 				return nil, err
 			}
 
-			expr = BinOp{
+			expr = ast.BinOp{
 				Op:    lexeme.Type,
 				Left:  expr,
 				Right: right,
@@ -98,8 +70,8 @@ loop:
 	return expr, nil
 }
 
-func (p *Parser) expr() (Node, error) {
-	factor, err := p.term()
+func (p *Parser) expr() (ast.Node, error) {
+	factor, err := p.power()
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +88,12 @@ func (p *Parser) expr() (Node, error) {
 
 		switch lexeme.Type {
 		case lex.OpStar, lex.OpSlash:
-			right, err := p.term()
+			right, err := p.power()
 			if err != nil {
 				return nil, err
 			}
 
-			factor = BinOp{
+			factor = ast.BinOp{
 				Op:    lexeme.Type,
 				Left:  factor,
 				Right: right,
@@ -136,8 +108,8 @@ func (p *Parser) expr() (Node, error) {
 	return factor, nil
 }
 
-func (p *Parser) term() (Node, error) {
-	factor, err := p.factor()
+func (p *Parser) power() (ast.Node, error) {
+	term, err := p.term()
 	if err != nil {
 		return nil, err
 	}
@@ -154,15 +126,69 @@ func (p *Parser) term() (Node, error) {
 
 		switch lexeme.Type {
 		case lex.OpCaret:
-			right, err := p.term()
+			right, err := p.power()
 			if err != nil {
 				return nil, err
 			}
 
-			factor = BinOp{
+			term = ast.BinOp{
 				Op:    lex.OpCaret,
-				Left:  factor,
+				Left:  term,
 				Right: right,
+			}
+		default:
+			p.lexer.Back()
+
+			return term, nil
+		}
+	}
+
+	return term, nil
+}
+
+func (p *Parser) term() (ast.Node, error) {
+	factor, err := p.factor()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		lexeme, err := p.lexer.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		if lexeme.Type == lex.EOF {
+			break
+		}
+
+		switch lexeme.Type {
+		case lex.LParen:
+			var args []ast.Node
+
+			for {
+				arg, err := p.stmt()
+				if err != nil {
+					return nil, err
+				}
+
+				lexeme, err := p.lexer.Next()
+				if err != nil {
+					return nil, err
+				}
+
+				args = append(args, arg)
+
+				switch lexeme.Type {
+				case lex.ChComma:
+				case lex.RParen:
+					return ast.FCall{
+						Target: factor,
+						Args:   args,
+					}, nil
+				default:
+					return nil, fmt.Errorf("unexpected symbol: %s (expected ) or ,)", lexeme)
+				}
 			}
 		default:
 			p.lexer.Back()
@@ -174,7 +200,7 @@ func (p *Parser) term() (Node, error) {
 	return factor, nil
 }
 
-func (p *Parser) factor() (Node, error) {
+func (p *Parser) factor() (ast.Node, error) {
 	lexeme, err := p.lexer.Next()
 	if err != nil {
 		return nil, err
@@ -182,13 +208,12 @@ func (p *Parser) factor() (Node, error) {
 
 	switch lexeme.Type {
 	case lex.Number:
-		value, err := strconv.ParseInt(lexeme.Value, 10, 64)
-		return Number(value), err
+		return strconv.ParseInt(lexeme.Value, 10, 64)
 	case lex.Id:
-		return ID(lexeme.Value), nil
+		return lexeme.Value, nil
 	case lex.UnPlus, lex.UnMinus:
-		value, err := p.term()
-		return UnOp{
+		value, err := p.power()
+		return ast.UnOp{
 			Op:    lexeme.Type,
 			Value: value,
 		}, err

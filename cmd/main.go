@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"calculator/frontend/lex"
 	"calculator/frontend/parse"
+	"calculator/frontend/parse/ast"
 	"calculator/interpret"
 	"fmt"
 	"os"
@@ -22,8 +23,26 @@ func input(prompt string) string {
 
 func repl() error {
 	const prompt = "> "
-	interpreter := interpret.NewInterpreter(map[string]float64{
-		"x": 5,
+	interpreter := interpret.NewInterpreter(map[string]ast.Node{
+		"x": ast.Integer(5),
+		"f": func(args ...ast.Node) (ast.Node, error) {
+			fmt.Println(args)
+			return ast.Integer(10), nil
+		},
+		"sum": func(args ...ast.Node) (ast.Node, error) {
+			var counter ast.Integer
+
+			for _, argNode := range args {
+				arg, ok := argNode.(ast.Integer)
+				if !ok {
+					return nil, fmt.Errorf("cannot use %v as integer", argNode)
+				}
+
+				counter += arg
+			}
+
+			return counter, nil
+		},
 	})
 
 	for {
@@ -35,13 +54,14 @@ func repl() error {
 }
 
 func calculate(interpreter interpret.Interpreter, expr string) error {
-	ast, err := parse.NewParser(lex.NewLexer(expr)).Parse()
+	tree, err := parse.NewParser(lex.NewLexer(expr)).Parse()
 	if err != nil {
 		return err
 	}
 
-	for _, branch := range ast {
-		result, err := interpreter.Execute(branch)
+	for _, branch := range tree {
+		fmt.Println(branch)
+		result, err := interpreter.Evaluate(branch)
 		if err != nil {
 			return err
 		}

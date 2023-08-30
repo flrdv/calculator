@@ -25,7 +25,7 @@ func TestLexer(t *testing.T) {
 	t.Run("simple expression", func(t *testing.T) {
 		testLexer(
 			t, "a+5",
-			Lexeme{Id, "a"}, Lexeme{Operator, "+"}, Lexeme{Number, "5"},
+			Lexeme{Id, "a"}, Lexeme{OpPlus, "+"}, Lexeme{Number, "5"},
 		)
 	})
 
@@ -34,7 +34,17 @@ func TestLexer(t *testing.T) {
 		_, err := lexer.Next()
 		require.NoError(t, err)
 		_, err = lexer.Next()
-		require.EqualError(t, err, "incomplete expression (no right operand)")
+		require.EqualError(t, err, "incomplete expression: no right operand")
+	})
+
+	t.Run("unary", func(t *testing.T) {
+		testLexer(
+			t, "+5+-+-7",
+			Lexeme{UnPlus, "+"}, Lexeme{Number, "5"},
+			Lexeme{OpPlus, "+"}, Lexeme{UnMinus, "-"},
+			Lexeme{UnPlus, "+"}, Lexeme{UnMinus, "-"},
+			Lexeme{Number, "7"},
+		)
 	})
 }
 

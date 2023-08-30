@@ -1,8 +1,8 @@
 package lex
 
 import (
-	"calculator/frontend/operator"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -40,9 +40,9 @@ func (l *Lexer) Next() (Lexeme, error) {
 	case Id:
 		value, err := l.parseId()
 		return l.save(Lexeme{Id, value}), err
-	case Operator:
-		value, err := l.parseOperator()
-		return l.save(Lexeme{Operator, value}), err
+	case untypedOperator:
+		lexeme, err := l.parseOperator()
+		return l.save(lexeme), err
 	case LParen:
 		return l.save(Lexeme{LParen, l.after(1)}), nil
 	case RParen:
@@ -102,14 +102,29 @@ func (l *Lexer) parseId() (string, error) {
 	return l.after(len(l.input)), nil
 }
 
-func (l *Lexer) parseOperator() (string, error) {
+func (l *Lexer) parseOperator() (Lexeme, error) {
 	for i := 1; i < len(l.input); i++ {
-		if !operator.IsPrefix(l.input[:i+1]) {
-			return l.after(i), nil
+		if !isUnaryPrefix(l.input[:i+1]) {
+			op := l.after(i)
+			opType := operatorType(op)
+			if opType == Untyped {
+				return Lexeme{}, fmt.Errorf("unknown operator: %s", op)
+			}
+
+			if l.previous.Type.FollowingOpCanBeUnary() {
+				unType := opType.AsUnary()
+				if unType == Untyped {
+					return Lexeme{}, fmt.Errorf("unknown unary: %s", op)
+				}
+
+				return Lexeme{unType, op}, nil
+			}
+
+			return Lexeme{opType, op}, nil
 		}
 	}
 
-	return "", errors.New("incomplete expression (no right operand)")
+	return Lexeme{}, fmt.Errorf("incomplete expression: no right operand")
 }
 
 func (l *Lexer) guessLexemeType() LexemeType {
@@ -120,8 +135,8 @@ func (l *Lexer) guessLexemeType() LexemeType {
 		return Number
 	case isIdent(l.input[0]):
 		return Id
-	case operator.IsPrefix(l.input[:1]):
-		return Operator
+	case isOperatorPrefix(l.input[:1]):
+		return untypedOperator
 	case l.input[0] == '(':
 		return LParen
 	case l.input[0] == ')':

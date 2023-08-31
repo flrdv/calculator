@@ -39,6 +39,11 @@ func (l *Lexer) Next() (Lexeme, error) {
 		return l.save(Lexeme{Number, value}), err
 	case Id:
 		value, err := l.parseId()
+
+		if isKeyword(value) {
+			return l.save(Lexeme{Keyword, value}), err
+		}
+
 		return l.save(Lexeme{Id, value}), err
 	case symbol:
 		lexeme, err := l.parseOperator()

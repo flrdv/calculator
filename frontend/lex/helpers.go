@@ -15,3 +15,13 @@ func isIdent(b byte) bool {
 func isIdentTail(b byte) bool {
 	return isIdent(b) || isInt(b)
 }
+
+func isKeyword(str string) bool {
+	for _, keyword := range Keywords {
+		if str == keyword {
+			return true
+		}
+	}
+
+	return false
+}

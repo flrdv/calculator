@@ -3,7 +3,7 @@ package lex
 import "strings"
 
 var (
-	allSymbols   = []string{plus, minus, star, slash, caret, comma}
+	allSymbols   = []string{plus, minus, star, slash, caret, comma, equal}
 	unarySymbols = []string{plus, minus}
 )
 
@@ -14,6 +14,7 @@ const (
 	slash = "/"
 	caret = "^"
 	comma = ","
+	equal = "="
 )
 
 func symbolType(o string) LexemeType {
@@ -30,6 +31,8 @@ func symbolType(o string) LexemeType {
 		return OpCaret
 	case comma:
 		return ChComma
+	case equal:
+		return ChEqual
 	}
 
 	return Untyped

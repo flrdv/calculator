@@ -17,6 +17,7 @@ const (
 	UnPlus  LexemeType = "UN_PLUS"
 	UnMinus LexemeType = "UN_MINUS"
 	ChComma LexemeType = "CH_COMMA"
+	ChEqual LexemeType = "CH_EQUAL"
 	Id      LexemeType = "ID"
 	Keyword LexemeType = "KEYWORD"
 	LParen  LexemeType = "LPAREN"

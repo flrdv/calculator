@@ -48,7 +48,17 @@ func TestLexer(t *testing.T) {
 	})
 
 	t.Run("comma", func(t *testing.T) {
-		testLexer(t, "a,b", Lexeme{Id, "a"}, Lexeme{ChComma, ","}, Lexeme{Id, "b"})
+		testLexer(
+			t, "a,b",
+			Lexeme{Id, "a"}, Lexeme{ChComma, ","},
+			Lexeme{Id, "b"})
+	})
+
+	t.Run("fn keyword", func(t *testing.T) {
+		testLexer(
+			t, "fn f",
+			Lexeme{Keyword, "fn"}, Lexeme{Id, "f"},
+		)
 	})
 }
 

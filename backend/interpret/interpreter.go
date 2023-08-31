@@ -115,6 +115,24 @@ func (i Interpreter) Evaluate(node ast.Node) (ast.Node, error) {
 		}
 
 		return res, nil
+	case ast.FDef:
+		fdef := node.(ast.FDef)
+		body := func(args ...ast.Node) (ast.Node, error) {
+			if len(fdef.Args) != len(args) {
+				return nil, fmt.Errorf(
+					"wanted %d args, got %d instead", len(fdef.Args), len(args),
+				)
+			}
+
+			for index, arg := range args {
+				i.names[fdef.Args[index]] = arg
+			}
+
+			return i.Evaluate(fdef.Body)
+		}
+		i.names[fdef.Name] = body
+
+		return body, nil
 	}
 
 	return nil, fmt.Errorf("interpreter: unknown node: %s", node)

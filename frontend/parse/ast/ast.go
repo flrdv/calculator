@@ -24,4 +24,9 @@ type (
 		Target Node
 		Args   []Node
 	}
+	FDef struct {
+		Name string
+		Args []string
+		Body Node
+	}
 )

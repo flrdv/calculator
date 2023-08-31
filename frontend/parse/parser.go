@@ -167,6 +167,14 @@ func (p *Parser) term() (ast.Node, error) {
 			var args []ast.Node
 
 			for {
+				if err = p.match(lex.RParen); err == nil {
+					return ast.FCall{
+						Target: factor,
+						Args:   args,
+					}, nil
+				}
+
+				p.lexer.Back()
 				arg, err := p.stmt()
 				if err != nil {
 					return nil, err
@@ -207,6 +215,73 @@ func (p *Parser) factor() (ast.Node, error) {
 	}
 
 	switch lexeme.Type {
+	case lex.Keyword:
+		switch lexeme.Value {
+		case lex.Fn:
+			name, err := p.lexer.Next()
+			if err != nil {
+				return nil, err
+			}
+
+			if name.Type != lex.Id {
+				return nil, fmt.Errorf("cannot use %s as a function name", name)
+			}
+
+			if err = p.match(lex.LParen); err != nil {
+				return nil, err
+			}
+
+			var args []string
+
+			for {
+				arg, err := p.lexer.Next()
+				if err != nil {
+					return nil, err
+				}
+
+				switch arg.Type {
+				case lex.Id:
+				case lex.RParen:
+					body, err := p.stmt()
+					if err != nil {
+						return nil, err
+					}
+
+					return ast.FDef{
+						Name: name.Value,
+						Args: args,
+						Body: body,
+					}, nil
+				default:
+					return nil, fmt.Errorf("cannot use %s as an argument", arg)
+				}
+
+				args = append(args, arg.Value)
+				lexeme, err := p.lexer.Next()
+				if err != nil {
+					return nil, err
+				}
+
+				switch lexeme.Type {
+				case lex.ChComma:
+				case lex.RParen:
+					body, err := p.stmt()
+					if err != nil {
+						return nil, err
+					}
+
+					return ast.FDef{
+						Name: name.Value,
+						Args: args,
+						Body: body,
+					}, nil
+				default:
+					return nil, fmt.Errorf("unexpected symbol: %s (expected ) or ,)", lexeme)
+				}
+			}
+		default:
+			return nil, fmt.Errorf("unknown keyword: %s", lexeme.Value)
+		}
 	case lex.Number:
 		return strconv.ParseInt(lexeme.Value, 10, 64)
 	case lex.Id:

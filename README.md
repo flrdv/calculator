@@ -4,9 +4,11 @@ Simple calculator in Go, using top-down recursive parser. At the moment, support
 - Basic arithmetic (including power)
 - Variables
 - Function calls
+- Function defining
 
 Soon:
-- Function defining support
+- Namespaces
+- Types
 - LLVM backend (using simple interpreter at the moment)
 
 ## How to use?

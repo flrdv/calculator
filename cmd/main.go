@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
+	"calculator/backend/interpret"
 	"calculator/frontend/lex"
 	"calculator/frontend/parse"
 	"calculator/frontend/parse/ast"
-	"calculator/interpret"
 	"fmt"
 	"os"
 )
@@ -60,7 +60,6 @@ func calculate(interpreter interpret.Interpreter, expr string) error {
 	}
 
 	for _, branch := range tree {
-		fmt.Println(branch)
 		result, err := interpreter.Evaluate(branch)
 		if err != nil {
 			return err

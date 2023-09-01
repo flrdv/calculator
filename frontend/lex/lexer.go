@@ -109,7 +109,7 @@ func (l *Lexer) parseId() (string, error) {
 
 func (l *Lexer) parseOperator() (Lexeme, error) {
 	for i := 1; i < len(l.input); i++ {
-		if !isUnaryPrefix(l.input[:i+1]) {
+		if !isSymbolPrefix(l.input[:i+1]) {
 			sym := l.after(i)
 			symType := symbolType(sym)
 			if symType == Untyped {

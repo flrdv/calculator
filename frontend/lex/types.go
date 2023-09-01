@@ -5,8 +5,8 @@ import "fmt"
 type LexemeType string
 
 const (
-	EOF     LexemeType = "EOF"
 	Untyped LexemeType = ""
+	EOF     LexemeType = "EOF"
 	Number  LexemeType = "NUMBER"
 	symbol  LexemeType = "SYMBOL"
 	OpPlus  LexemeType = "OP_PLUS"
@@ -18,6 +18,7 @@ const (
 	UnMinus LexemeType = "UN_MINUS"
 	ChComma LexemeType = "CH_COMMA"
 	ChEqual LexemeType = "CH_EQUAL"
+	ChFlow  LexemeType = "CH_FLOW"
 	Id      LexemeType = "ID"
 	Keyword LexemeType = "KEYWORD"
 	LParen  LexemeType = "LPAREN"

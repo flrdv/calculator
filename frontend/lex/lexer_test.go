@@ -60,6 +60,13 @@ func TestLexer(t *testing.T) {
 			Lexeme{Keyword, "fn"}, Lexeme{Id, "f"},
 		)
 	})
+
+	t.Run("2-complement operator", func(t *testing.T) {
+		testLexer(
+			t, "a->b",
+			Lexeme{Id, "a"}, Lexeme{ChFlow, "->"},
+			Lexeme{Id, "b"})
+	})
 }
 
 func testLexer(t *testing.T, code string, want ...Lexeme) {

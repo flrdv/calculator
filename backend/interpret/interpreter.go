@@ -3,22 +3,19 @@ package interpret
 import (
 	"calculator/frontend/lex"
 	"calculator/frontend/parse/ast"
+	"calculator/internal/chainedmap"
 	"fmt"
 	"math"
 	"reflect"
 )
 
 type Interpreter struct {
-	names map[string]ast.Node
+	names *chainedmap.ChainedMap[string, ast.Node]
 }
 
 func NewInterpreter(names map[string]ast.Node) Interpreter {
-	if names == nil {
-		names = make(map[string]ast.Node)
-	}
-
 	return Interpreter{
-		names: names,
+		names: chainedmap.New[string, ast.Node](names),
 	}
 }
 
@@ -27,7 +24,7 @@ func (i Interpreter) Evaluate(node ast.Node) (ast.Node, error) {
 	case ast.Integer, ast.Float:
 		return node, nil
 	case ast.ID:
-		value, found := i.names[node.(ast.ID)]
+		value, found := i.names.Get(node.(ast.ID))
 		if !found {
 			return nil, fmt.Errorf("name not found: %v", node)
 		}
@@ -124,13 +121,17 @@ func (i Interpreter) Evaluate(node ast.Node) (ast.Node, error) {
 				)
 			}
 
+			i.names.Push()
+			defer i.names.Pop()
+
 			for index, arg := range args {
-				i.names[fdef.Args[index]] = arg
+				i.names.Insert(fdef.Args[index], arg)
 			}
 
 			return i.Evaluate(fdef.Body)
 		}
-		i.names[fdef.Name] = body
+
+		i.names.Insert(fdef.Name, body)
 
 		return body, nil
 	}

@@ -164,39 +164,9 @@ func (p *Parser) term() (ast.Node, error) {
 
 		switch lexeme.Type {
 		case lex.LParen:
-			var args []ast.Node
-
-			for {
-				if err = p.match(lex.RParen); err == nil {
-					return ast.FCall{
-						Target: factor,
-						Args:   args,
-					}, nil
-				}
-
-				p.lexer.Back()
-				arg, err := p.stmt()
-				if err != nil {
-					return nil, err
-				}
-
-				lexeme, err := p.lexer.Next()
-				if err != nil {
-					return nil, err
-				}
-
-				args = append(args, arg)
-
-				switch lexeme.Type {
-				case lex.ChComma:
-				case lex.RParen:
-					return ast.FCall{
-						Target: factor,
-						Args:   args,
-					}, nil
-				default:
-					return nil, fmt.Errorf("unexpected symbol: %s (expected ) or ,)", lexeme)
-				}
+			factor, err = p.fcall(factor)
+			if err != nil {
+				return nil, err
 			}
 		default:
 			p.lexer.Back()
@@ -301,6 +271,43 @@ func (p *Parser) factor() (ast.Node, error) {
 		return stmt, p.match(lex.RParen)
 	default:
 		return nil, fmt.Errorf("unexpected factor: %s", lexeme)
+	}
+}
+
+func (p *Parser) fcall(target ast.Node) (ast.Node, error) {
+	var args []ast.Node
+
+	for {
+		if err := p.match(lex.RParen); err == nil {
+			return ast.FCall{
+				Target: target,
+				Args:   args,
+			}, nil
+		}
+
+		p.lexer.Back()
+		arg, err := p.stmt()
+		if err != nil {
+			return nil, err
+		}
+
+		lexeme, err := p.lexer.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		args = append(args, arg)
+
+		switch lexeme.Type {
+		case lex.ChComma:
+		case lex.RParen:
+			return ast.FCall{
+				Target: target,
+				Args:   args,
+			}, nil
+		default:
+			return nil, fmt.Errorf("unexpected symbol: %s (expected ) or ,)", lexeme)
+		}
 	}
 }
 

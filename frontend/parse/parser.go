@@ -46,30 +46,22 @@ func (p *Parser) stmt() (ast.Node, error) {
 
 		switch lexeme.Type {
 		case lex.ChFlow:
-			base, ok := expr.(ast.FCall)
-			if !ok {
-				return nil, fmt.Errorf("cannot use %v as a function signature", expr)
-			}
-
-			name, ok := base.Target.(ast.ID)
-			if !ok {
-				return nil, fmt.Errorf("cannot use %v as a function name", base.Target)
-			}
-
-			fdef := ast.FDef{Name: name}
-
-			for _, arg := range base.Args {
-				id, ok := arg.(ast.ID)
-				if !ok {
-					return nil, fmt.Errorf("cannot use %v as a function argument", arg)
+			switch expr.(type) {
+			case ast.FCall:
+				return p.fdef(expr.(ast.FCall))
+			case ast.ID:
+				value, err := p.stmt()
+				if err != nil {
+					return nil, err
 				}
 
-				fdef.Args = append(fdef.Args, id)
+				return ast.Def{
+					Name:  expr.(ast.ID),
+					Value: value,
+				}, nil
+			default:
+				return nil, fmt.Errorf("cannot define object with name %v", expr)
 			}
-
-			fdef.Body, err = p.stmt()
-
-			return fdef, err
 		case lex.OpPlus, lex.OpMinus:
 			right, err := p.expr()
 			if err != nil {
@@ -267,6 +259,28 @@ func (p *Parser) fcall(base ast.Node) (ast.Node, error) {
 			return nil, fmt.Errorf("unexpected symbol: %s (expected ) or ,)", lexeme)
 		}
 	}
+}
+
+func (p *Parser) fdef(base ast.FCall) (node ast.Node, err error) {
+	name, ok := base.Target.(ast.ID)
+	if !ok {
+		return nil, fmt.Errorf("cannot use %v as a function name", base.Target)
+	}
+
+	fdef := ast.FDef{Name: name}
+
+	for _, arg := range base.Args {
+		id, ok := arg.(ast.ID)
+		if !ok {
+			return nil, fmt.Errorf("cannot use %v as a function argument", arg)
+		}
+
+		fdef.Args = append(fdef.Args, id)
+	}
+
+	fdef.Body, err = p.stmt()
+
+	return fdef, err
 }
 
 func (p *Parser) match(typ lex.LexemeType) error {

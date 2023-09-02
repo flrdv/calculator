@@ -88,6 +88,54 @@ func TestParser(t *testing.T) {
 				Args: []ast.Node{"y"},
 			},
 		},
+		{
+			Name: "define function",
+			Expr: "f(x) -> x",
+			Want: ast.FDef{
+				Name: "f",
+				Args: []string{"x"},
+				Body: "x",
+			},
+		},
+		{
+			Name: "define higher-order function",
+			Expr: "f(x) -> g(y) -> x+y",
+			Want: ast.FDef{
+				Name: "f",
+				Args: []string{"x"},
+				Body: ast.FDef{
+					Name: "g",
+					Args: []string{"y"},
+					Body: ast.BinOp{
+						Op:    lex.OpPlus,
+						Left:  "x",
+						Right: "y",
+					},
+				},
+			},
+		},
+		{
+			Name: "define variable",
+			Expr: "x -> f(x)",
+			Want: ast.Def{
+				Name: "x",
+				Value: ast.FCall{
+					Target: "f",
+					Args:   []ast.Node{"x"},
+				},
+			},
+		},
+		{
+			Name: "define same value for multiple variables",
+			Expr: "x -> y -> 5",
+			Want: ast.Def{
+				Name: "x",
+				Value: ast.Def{
+					Name:  "y",
+					Value: ast.Integer(5),
+				},
+			},
+		},
 	}
 
 	for _, tc := range tcs {

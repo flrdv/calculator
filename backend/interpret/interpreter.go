@@ -134,6 +134,16 @@ func (i Interpreter) Evaluate(node ast.Node) (ast.Node, error) {
 		i.names.Insert(fdef.Name, body)
 
 		return body, nil
+	case ast.Def:
+		def := node.(ast.Def)
+		res, err := i.Evaluate(def.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		i.names.Insert(def.Name, res)
+
+		return res, nil
 	}
 
 	return nil, fmt.Errorf("interpreter: unknown node: %s", node)

@@ -29,4 +29,8 @@ type (
 		Args []string
 		Body Node
 	}
+	Def struct {
+		Name  string
+		Value Node
+	}
 )

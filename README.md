@@ -48,10 +48,16 @@ x -> y -> 5
 
 #### Binary operations
 `+` - add
+
 `-` - subtract
+
 `/` - divide
+
 `*` - multiply
+
 `^` - power
 
 #### Unary operations
-`+` and `-` respectively. Note: the precedence if unary operations are higher than any math operation, except power and function calls
+`+` and `-` respectively. 
+
+Note: the precedence of unary operations are the lower than power, function calls and in-parenthesis expressions. So in fact - just like in math

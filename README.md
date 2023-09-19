@@ -60,4 +60,4 @@ x -> y -> 5
 #### Unary operations
 `+` and `-` respectively. 
 
-Note: the precedence of unary operations are the lower than power, function calls and in-parenthesis expressions. So in fact - just like in math
+Note: the precedence of unary operations are lower than power, function calls and in-parenthesis expressions. So in fact - just like in math
